@@ -32,37 +32,76 @@ def run_testify(args):
     results = results[results["p_exact"] < cutoff].copy()
     return results
 
-def analyze_tcr_hla_association(DF_HLA, metadata_df, train_ptids, input_tcrs, v, filenames, cutoff=0.1):
-    filtered_filenames, hla_patient_data_train = filter_hla_samples(DF_HLA, metadata_df, train_ptids, filenames)
+def analyze_tcr_hla_association(
+    DF_HLA, metadata_df, train_ptids, input_tcrs, v, filenames, 
+    cutoff=0.1, only_novel=True, edit_type="edit0"):
+    """
+    Analyze TCR-HLA associations with optional novel expander filtering and tabify method selection.
+
+    Parameters:
+        DF_HLA (pd.DataFrame): HLA info with ptid_info.
+        metadata_df (pd.DataFrame): Metadata including ptids and visit info.
+        train_ptids (pd.Series): Patient IDs in training set.
+        input_tcrs (list or np.ndarray): TCRs to analyze.
+        v (VfamCDR3 object): VfamCDR3 parser instance.
+        filenames (list): Raw filenames for parsing.
+        cutoff (float): P-value cutoff for inclusion.
+        novel_expander (bool): Whether to restrict to post-treatment samples.
+        edit_type (str): 'edit0' for tabify, 'edit1' for tabify1.
+
+    Returns:
+        tcr_presence_absence (DataFrame), tcr_specific_hla (DataFrame),
+        visit (Series), all_fdr_values (DataFrame)
+    """
+    filtered_filenames, hla_patient_data_train = filter_hla_samples(
+        DF_HLA, metadata_df, train_ptids, filenames
+    )
+
     v.parse_adaptive_files(checklist=filtered_filenames)
-    
+
     filelist = [os.path.join(v.outdir_vfamcdr3, x) for x in os.listdir(v.outdir_vfamcdr3)]
-    input_tcrs = pd.DataFrame(input_tcrs, columns=["vfamcdr3"])
-    
-    X0 = tabify(query=input_tcrs, filelist=filelist, on='vfamcdr3', get_col='productive_frequency', cpus=4)
+    input_tcrs_df = pd.DataFrame(input_tcrs, columns=["vfamcdr3"])
 
+    # Use tabify or tabify1 depending on edit_type
+    if edit_type == "edit1":
+        X0 = tabify1(query=input_tcrs_df, filelist=filelist, on='vfamcdr3',
+                     get_col='productive_frequency', cpus=4)
+    else:
+        X0 = tabify(query=input_tcrs_df, filelist=filelist, on='vfamcdr3',
+                    get_col='productive_frequency', cpus=4)
+
+    # Binary matrix: TCR presence/absence
     tcr_presence_absence = (X0 > 0).astype(int)
-    tcr_presence_absence.index = input_tcrs["vfamcdr3"]
+    tcr_presence_absence.index = input_tcrs_df["vfamcdr3"]
 
+    # Build HLA matrix and align columns
     Y = DF_HLA.loc[tcr_presence_absence.columns]
     Y.index = Y["ptid_info"]
     tcr_presence_absence.columns = Y.index
 
-    Y_testify = Y[Y.index.str.contains('_post')].iloc[:, :-3]
+    # Apply novel expander filtering logic
+    if only_novel:
+        Y_testify = Y[Y.index.str.contains('_post')].iloc[:, :-3]
+    else:
+        Y_testify = Y.iloc[:, :-3]
+
     tcr_presence_absence_testify = tcr_presence_absence[Y_testify.index]
 
     print("Running HLA-TCR association tests...")
     with Pool(cpu_count()) as pool:
         all_results = pool.map(run_testify, [
-            (col, tcr_presence_absence_testify, Y_testify, cutoff) for col in Y_testify.columns
+            (col, tcr_presence_absence_testify, Y_testify, cutoff)
+            for col in Y_testify.columns
         ])
 
     tcr_specific_hla = pd.concat(all_results, ignore_index=True).sort_values("fdr_corrected_p")
     all_fdr_values = tcr_specific_hla.copy()
     tcr_specific_hla.rename(columns={"i": "vfamcdr3"}, inplace=True)
 
-    visit = pd.Series(tcr_presence_absence.columns).str.contains("_post").astype(int)
+    visit = pd.Series(tcr_presence_absence.columns, index=tcr_presence_absence.columns).str.contains("_post").astype(int)
+
     return tcr_presence_absence, tcr_specific_hla, visit, all_fdr_values
+
 
 
 

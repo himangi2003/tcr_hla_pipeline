@@ -54,7 +54,7 @@ def compute_auc(df, hla_columns, tcr_columns):
     return pd.DataFrame(auc_results)
 
 
-def test(DF_HLA, m, test_ptids, filenames, query_df, v):
+def test(DF_HLA, m, test_ptids, filenames, query_df, v, edit_type="edit0"):
     if 'TCR' in query_df.columns:
         query_df = query_df.rename(columns={"TCR": "vfamcdr3"})
 
@@ -63,15 +63,25 @@ def test(DF_HLA, m, test_ptids, filenames, query_df, v):
     
     filelist = [os.path.join(v.outdir_vfamcdr3, x) for x in os.listdir(v.outdir_vfamcdr3)]
 
-    X0 = tabify(query=query_df, filelist=filelist, on='vfamcdr3', get_col='productive_frequency', min_value=None, cpus=2)
+    # Select tabify version based on edit_type
+    if edit_type == "edit1":
+        X0 = tabify1(query=query_df, filelist=filelist, on='vfamcdr3',
+                     get_col='productive_frequency', cpus=4)
+    else:
+        X0 = tabify(query=query_df, filelist=filelist, on='vfamcdr3',
+                    get_col='productive_frequency', cpus=4)
+
     X0.index = query_df["vfamcdr3"]
     test_df = X0.T
+
     sample_map = {row['sample_name']: idx for idx, row in hla_patient_data_test.iterrows()}
     test_df = test_df.rename(index={k: sample_map[k] for k in test_df.index if k in sample_map})
+
     hla_subgr = hla_patient_data_test.columns.to_list()[:-2]
     df_merged = hla_patient_data_test.merge(test_df, left_index=True, right_index=True, how='inner')
-    
-    # Derive visit status
+
     df_merged["visit"] = df_merged.index.to_series().apply(lambda x: 1 if "_post" in x else 0)
+
     auc_df = compute_auc(df_merged, hla_subgr, query_df["vfamcdr3"])
     return auc_df
+

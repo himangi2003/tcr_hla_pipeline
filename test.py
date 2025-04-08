@@ -28,5 +28,5 @@ def run_testing():
     interaction_df = interaction_df[interaction_df['Error'] == False]
     query_df = interaction_df.rename(columns={'TCR': 'vfamcdr3'})
 
-    auc_df = test(DF_HLA, metadata_df, TEST_PTIDS, filenames, query_df, v)
+    auc_df = test(DF_HLA, metadata_df, TEST_PTIDS, filenames, query_df, v, edit_type = "edit1")
     auc_df.to_csv("outputs/test_auc.csv", index=False)

@@ -9,22 +9,26 @@ import os
 import shutil
 import pandas as pd
 
+
 def run_training():
     metadata_df = load_metadata(METADATA_FILE)
     data_df = load_data(DATA_FILE)
     DF_HLA = load_hla_data(DF_HLA_FILE)
 
-
     group_1, group_2 = split_ptids(data_df, PTID_SPLIT_FILE)
     train_ptids = group_1['ptid']
     test_ptids = group_2['ptid']
+
+    # Save ptid splits to outputs/
+    os.makedirs("outputs", exist_ok=True)
+    group_1.to_csv("outputs/train_ptids.csv", index=False)
+    group_2.to_csv("outputs/test_ptids.csv", index=False)
 
     processed_group_1 = process_amino_acid_counts(
         group_1['ptid'].unique(), data_df, REP_FOLDER,
         min_num_ptids=2,
         only_novel=True
     )
-
 
     # Setup folder
     if os.path.exists(TRAIN_FOLDER):
@@ -37,8 +41,8 @@ def run_training():
     input_tcrs = processed_group_1["vfamcdr3"].unique()
 
     tcr_presence_absence, tcr_specific_hla, visit, all_fdr_values = analyze_tcr_hla_association(
-        DF_HLA, metadata_df, train_ptids, input_tcrs, v, filenames
-    )
+        DF_HLA, metadata_df, train_ptids, input_tcrs, v, filenames, 
+        cutoff=0.1, only_novel=True, edit_type="edit1")
 
     hla_patient_data = add_vaccine_sample_ptid_HLA_info_to_df(DF_HLA, metadata_df)
     hla_patient_data = hla_patient_data[hla_patient_data["ptid"].isin(train_ptids)]
@@ -52,4 +56,4 @@ def run_training():
 
     for key in results:
         df = pd.concat(results[key], ignore_index=True)
-        df.to_csv(f"outputs/train_{key}.csv", index=False)
+        df.to_csv(f"outputs/train_{key}_{edit_type}.csv", index=False)

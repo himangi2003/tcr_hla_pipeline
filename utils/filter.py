@@ -43,13 +43,29 @@ def process_amino_acid_counts_for_tcrs(tcr_list, data_df, REP_FOLDER,
                                                    only_novel=only_novel)
     return amino_acid_summary[amino_acid_summary['vfamcdr3'].isin(tcr_list)]
 
-def split_ptids(data_df, PTID_SPLIT_FILE):
-    """Splits PTIDs into two random groups."""
-    valid_ptids = pd.read_csv(PTID_SPLIT_FILE, sep=',')["ptid"].unique()
-    random.shuffle(valid_ptids)
-    split_index = len(valid_ptids) // 2
+
+def split_ptids(data_df, PTID_SPLIT_FILE, seed=42):
+    """
+    Splits PTIDs into two random groups using a reproducible random seed.
     
-    ptid_group_1, ptid_group_2 = set(valid_ptids[:split_index]), set(valid_ptids[split_index:])
+    Parameters:
+        data_df (pd.DataFrame): The main dataframe containing a 'ptid' column.
+        PTID_SPLIT_FILE (str): Path to CSV file with a column named 'ptid'.
+        seed (int): Random seed for reproducibility (default=42).
+        
+    Returns:
+        group_1 (pd.DataFrame): DataFrame for first random group of ptids.
+        group_2 (pd.DataFrame): DataFrame for second random group of ptids.
+    """
+    valid_ptids = pd.read_csv(PTID_SPLIT_FILE, sep=',')["ptid"].unique()
+    random.seed(seed)
+    shuffled_ptids = list(valid_ptids)
+    random.shuffle(shuffled_ptids)
+    
+    split_index = len(shuffled_ptids) // 2
+    ptid_group_1 = set(shuffled_ptids[:split_index])
+    ptid_group_2 = set(shuffled_ptids[split_index:])
+    
     group_1 = data_df[data_df['ptid'].isin(ptid_group_1)]
     group_2 = data_df[data_df['ptid'].isin(ptid_group_2)]
     

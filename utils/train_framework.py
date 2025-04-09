@@ -167,7 +167,7 @@ def process_tcr_glm_net(tcr, tcr_presence_absence, visit, tcr_specific_hla, hla_
     )
 
     if data is None or not valid_hla_indices:
-        print(f"[ERROR] TCR: {tcr}, Message: No valid HLA data available.")
+        #print(f"[ERROR] TCR: {tcr}, Message: No valid HLA data available.")
         error_row = {
             'TCR': tcr,
             'HLA': None,
@@ -216,7 +216,7 @@ def process_tcr_glm_net(tcr, tcr_presence_absence, visit, tcr_specific_hla, hla_
 
             except Exception as e:
                 error_message = str(e)
-                print(f"[ERROR] TCR: {tcr}, HLA: {hla}, Model: {model_type}, Message: {error_message}")
+                #print(f"[ERROR] TCR: {tcr}, HLA: {hla}, Model: {model_type}, Message: {error_message}")
 
                 model_result_df = pd.DataFrame([{
                     'TCR': tcr,

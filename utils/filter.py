@@ -22,7 +22,7 @@ def process_patient(ptid, data_df, REP_FOLDER):
     return count_summary[(count_summary['counts'] > 1)]
 
 def process_amino_acid_counts(ptids, data_df, REP_FOLDER, 
-                              min_num_ptids: int = 3, only_novel: bool = True):
+                              min_num_ptids, only_novel):
     """Processes amino acid counts for a list of patients with options to filter novel TCRs and by patient count."""
     results = [process_patient(ptid, data_df, REP_FOLDER) for ptid in tqdm(ptids, desc="Processing patients")]
     final_df = pd.concat([r for r in results if not r.empty], ignore_index=True)
@@ -34,8 +34,8 @@ def process_amino_acid_counts(ptids, data_df, REP_FOLDER,
     return grouped[grouped['num_ptids'] >= min_num_ptids]
 
 def process_amino_acid_counts_for_tcrs(tcr_list, data_df, REP_FOLDER,
-                                       min_ptid_count: int = 3, min_templates: int = 1,
-                                       only_novel: bool = True):
+                                       min_ptid_count, min_templates
+                                       only_novel):
     """Processes amino acid counts for a given list of TCRs with filtering conditions."""
     ptids = data_df['ptid'].unique()
     amino_acid_summary = process_amino_acid_counts(ptids, data_df, REP_FOLDER, 

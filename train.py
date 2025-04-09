@@ -8,9 +8,10 @@ from utils.test_framework import*
 import os
 import shutil
 import pandas as pd
+from tqdm import tqdm
 
 
-def run_training():
+def run_training(edit_type, min_num_ptids, only_novel):
     metadata_df = load_metadata(METADATA_FILE)
     data_df = load_data(DATA_FILE)
     DF_HLA = load_hla_data(DF_HLA_FILE)
@@ -27,7 +28,7 @@ def run_training():
     processed_group_1 = process_amino_acid_counts(
         group_1['ptid'].unique(), data_df, REP_FOLDER,
         min_num_ptids=2,
-        only_novel=True
+        only_novel = only_novel
     )
 
     # Setup folder
@@ -42,17 +43,18 @@ def run_training():
 
     tcr_presence_absence, tcr_specific_hla, visit, all_fdr_values = analyze_tcr_hla_association(
         DF_HLA, metadata_df, train_ptids, input_tcrs, v, filenames, 
-        cutoff=0.1, only_novel=True, edit_type="edit1")
+        cutoff=0.1, only_novel=True, edit_type=edit_type)
 
     hla_patient_data = add_vaccine_sample_ptid_HLA_info_to_df(DF_HLA, metadata_df)
     hla_patient_data = hla_patient_data[hla_patient_data["ptid"].isin(train_ptids)]
     hla_patient_data = hla_patient_data.sort_values("ptid_info").set_index("ptid_info")
 
     results = {'hla': [], 'visit_hla': [], 'visit_hla_interaction': []}
-    for tcr in input_tcrs:
+    for tcr in tqdm(input_tcrs, desc="Running GLM for each TCR"):
         tcr_result = process_tcr_glm_net(tcr, tcr_presence_absence, visit, tcr_specific_hla, hla_patient_data)
         for key in results:
             results[key].extend(tcr_result[key])
+
 
     for key in results:
         df = pd.concat(results[key], ignore_index=True)

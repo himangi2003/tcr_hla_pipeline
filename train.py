@@ -1,5 +1,5 @@
 # train.py
-from config import METADATA_FILE, DATA_FILE, DF_HLA_FILE, REP_FOLDER, TRAIN_FOLDER ,PTID_SPLIT_FILE
+from config import*
 from utils.io_utils import*
 from utils.filter import*
 from utils.preprocess import*
@@ -16,20 +16,10 @@ def run_training(edit_type, min_num_ptids, only_novel):
     data_df = load_data(DATA_FILE)
     DF_HLA = load_hla_data(DF_HLA_FILE)
 
-    group_1, group_2 = split_ptids(data_df, PTID_SPLIT_FILE)
-    train_ptids = group_1['ptid']
-    test_ptids = group_2['ptid']
+    train_ptids = pd.read_csv("outputs/train_ptids.csv")["ptid"]
+    input_tcrs_list_file  = pd.read_csv("outputs/train_input.csv")
+    input_tcrs = input_tcrs_list_file["vfamcdr3"].unique()
 
-    # Save ptid splits to outputs/
-    os.makedirs("outputs", exist_ok=True)
-    group_1.to_csv("outputs/train_ptids.csv", index=False)
-    group_2.to_csv("outputs/test_ptids.csv", index=False)
-
-    processed_group_1 = process_amino_acid_counts(
-        group_1['ptid'].unique(), data_df, REP_FOLDER,
-        min_num_ptids=2,
-        only_novel = only_novel
-    )
 
     # Setup folder
     if os.path.exists(TRAIN_FOLDER):
@@ -39,7 +29,7 @@ def run_training(edit_type, min_num_ptids, only_novel):
     v = VfamCDR3(project_folder=TRAIN_FOLDER, input_zfile=REP_FOLDER, cpus=4)
     filenames = v.get_raw_files()
 
-    input_tcrs = processed_group_1["vfamcdr3"].unique()
+    
 
     tcr_presence_absence, tcr_specific_hla, visit, all_fdr_values = analyze_tcr_hla_association(
         DF_HLA, metadata_df, train_ptids, input_tcrs, v, filenames, 

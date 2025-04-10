@@ -11,4 +11,6 @@ TEST_FOLDER =  "/fh/fast/gilbert_p/hsrivast/test_framework"
 DF_HLA_FILE = '/fh/fast/gilbert_p/hsrivast/COVPN_3006_TCR_pre_post_data/network_construction_inputs/20241229_vfamcdr3_tab/20241229_giant_network_samples_predicted_HLA_calibrated_probsn_screened_na.csv'
 
 
+TEST_PTIDS_FILE = "outputs/test_ptids.csv"
+TRAIN_RESULTS_PREFIX = "outputs/train"
 

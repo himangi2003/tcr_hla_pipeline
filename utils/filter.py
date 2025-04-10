@@ -3,6 +3,7 @@ import random
 from tqdm import tqdm
 from utils.preprocess import*
 
+
 def process_patient(ptid, data_df, REP_FOLDER):
     """Processes a patient and returns TCRs with novel expanders and counts >1."""
     specific_ptid_data = data_df[data_df['ptid'] == ptid]
@@ -19,11 +20,10 @@ def process_patient(ptid, data_df, REP_FOLDER):
     count_summary = post1_df.groupby('vfamcdr3')['counts'].sum().reset_index()
     count_summary['ptid'] = ptid
     count_summary['novel_expander'] = count_summary['vfamcdr3'].isin(novel_expanders).astype(int)
-    return count_summary[(count_summary['counts'] > 1)]
+    return count_summary[count_summary['counts'] > 1]
 
-def process_amino_acid_counts(ptids, data_df, REP_FOLDER, 
-                              min_num_ptids, only_novel):
-    """Processes amino acid counts for a list of patients with options to filter novel TCRs and by patient count."""
+def process_amino_acid_counts(ptids, data_df, REP_FOLDER, min_num_ptids, only_novel):
+    """Processes amino acid counts across patients, filtering by TCR novelty and ptid count."""
     results = [process_patient(ptid, data_df, REP_FOLDER) for ptid in tqdm(ptids, desc="Processing patients")]
     final_df = pd.concat([r for r in results if not r.empty], ignore_index=True)
     
@@ -33,40 +33,25 @@ def process_amino_acid_counts(ptids, data_df, REP_FOLDER,
     grouped = final_df.groupby('vfamcdr3').agg(num_ptids=('ptid', 'nunique')).reset_index()
     return grouped[grouped['num_ptids'] >= min_num_ptids]
 
-def process_amino_acid_counts_for_tcrs(tcr_list, data_df, REP_FOLDER,
-                                       min_ptid_count, min_templates
-                                       only_novel):
-    """Processes amino acid counts for a given list of TCRs with filtering conditions."""
+def process_amino_acid_counts_for_tcrs(tcr_list, data_df, REP_FOLDER, min_ptid_count, min_templates, only_novel):
+    """Processes counts for specific TCRs."""
     ptids = data_df['ptid'].unique()
-    amino_acid_summary = process_amino_acid_counts(ptids, data_df, REP_FOLDER, 
-                                                   min_num_ptids=min_ptid_count,
-                                                   only_novel=only_novel)
-    return amino_acid_summary[amino_acid_summary['vfamcdr3'].isin(tcr_list)]
-
+    aa_summary = process_amino_acid_counts(ptids, data_df, REP_FOLDER, min_ptid_count, only_novel)
+    return aa_summary[aa_summary['vfamcdr3'].isin(tcr_list)]
 
 def split_ptids(data_df, PTID_SPLIT_FILE, seed=42):
-    """
-    Splits PTIDs into two random groups using a reproducible random seed.
-    
-    Parameters:
-        data_df (pd.DataFrame): The main dataframe containing a 'ptid' column.
-        PTID_SPLIT_FILE (str): Path to CSV file with a column named 'ptid'.
-        seed (int): Random seed for reproducibility (default=42).
-        
-    Returns:
-        group_1 (pd.DataFrame): DataFrame for first random group of ptids.
-        group_2 (pd.DataFrame): DataFrame for second random group of ptids.
-    """
-    valid_ptids = pd.read_csv(PTID_SPLIT_FILE, sep=',')["ptid"].unique()
+    """Splits PTIDs into two random groups using a reproducible seed."""
+    valid_ptids = pd.read_csv(PTID_SPLIT_FILE)["ptid"].unique()
     random.seed(seed)
     shuffled_ptids = list(valid_ptids)
     random.shuffle(shuffled_ptids)
     
-    split_index = len(shuffled_ptids) // 2
-    ptid_group_1 = set(shuffled_ptids[:split_index])
-    ptid_group_2 = set(shuffled_ptids[split_index:])
+    mid = len(shuffled_ptids) // 2
+    group_1_ids = set(shuffled_ptids[:mid])
+    group_2_ids = set(shuffled_ptids[mid:])
     
-    group_1 = data_df[data_df['ptid'].isin(ptid_group_1)]
-    group_2 = data_df[data_df['ptid'].isin(ptid_group_2)]
-    
+    group_1 = data_df[data_df['ptid'].isin(group_1_ids)]
+    group_2 = data_df[data_df['ptid'].isin(group_2_ids)]
     return group_1, group_2
+
+

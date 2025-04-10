@@ -46,7 +46,7 @@ def analyze_tcr_hla_association(
         v (VfamCDR3 object): VfamCDR3 parser instance.
         filenames (list): Raw filenames for parsing.
         cutoff (float): P-value cutoff for inclusion.
-        novel_expander (bool): Whether to restrict to post-treatment samples.
+        novel_expander (bool): check to use expanded TCRs only .
         edit_type (str): 'edit0' for tabify, 'edit1' for tabify1.
 
     Returns:
@@ -66,9 +66,13 @@ def analyze_tcr_hla_association(
     if edit_type == "edit1":
         X0 = tabify1(query=input_tcrs_df, filelist=filelist, on='vfamcdr3',
                      get_col='productive_frequency', cpus=4)
-    else:
+    elif edit_type == "edit0":
         X0 = tabify(query=input_tcrs_df, filelist=filelist, on='vfamcdr3',
                     get_col='productive_frequency', cpus=4)
+    else:
+        print("Please choose a valid edit type: 'edit0' or 'edit1'")
+        X0 = None
+
 
     # Binary matrix: TCR presence/absence
     tcr_presence_absence = (X0 > 0).astype(int)
@@ -106,51 +110,49 @@ def analyze_tcr_hla_association(
 
 
 
-
-
 def process_tcr_data(tcr, tcr_presence_absence, visit, tcr_specific_hla, hla_patient_data):
     """
-    Exctract TCR data to fit the model.
+    Extract TCR data to fit the model.
 
     Parameters:
-    - tcr (str):  TCR .
+    - tcr (str): TCR identifier.
     - tcr_presence_absence (pd.DataFrame): DataFrame with TCRs as rows and patients as columns (binary presence/absence).
     - visit (list or np.array): Visit data (should match the number of patients).
     - tcr_specific_hla (pd.DataFrame): Mapping between TCRs and HLA associations.
     - hla_patient_data (pd.DataFrame): HLA information for patients.
 
     Returns:
-    - data (pd.DataFrame or None): DataFrame containing 'presence' and 'visit' and HLA (optional) columns.
+    - data (pd.DataFrame or None): DataFrame containing 'presence', 'visit', and optional HLA columns.
+    - hla_df (pd.DataFrame or None): DataFrame of patient HLA values for the TCR-associated HLAs.
+    - valid_hla_indices (list or None): List of valid HLA alleles associated with the TCR and found in hla_patient_data.
     """
     
     if tcr not in tcr_presence_absence.index:
         print(f"Skipping TCR {tcr}: Not found in tcr_presence_absence")
-        return None, None
+        return None, None, None
 
     presence = tcr_presence_absence.loc[tcr].to_numpy()
-
+    
     if len(presence) != len(visit):
         print(f"Skipping TCR {tcr}: Mismatched presence ({len(presence)}) and visit ({len(visit)}) lengths.")
-        return None, None
+        return None, None, None
 
+    # Get HLA alleles associated with this TCR
     hla_indices = tcr_specific_hla.loc[tcr_specific_hla["vfamcdr3"] == tcr, "binary"].tolist()
     valid_hla_indices = [hla for hla in hla_indices if hla in hla_patient_data.columns]
 
-    if not valid_hla_indices:
+    patients = tcr_presence_absence.columns
+    data = pd.DataFrame({'presence': presence, 'visit': visit}, index=patients)
+
+    if valid_hla_indices:
+        hla_df = hla_patient_data.loc[patients, valid_hla_indices]
+        data = pd.concat([data.reset_index(drop=True), hla_df.reset_index(drop=True)], axis=1)
+    else:
         hla_df = None
         valid_hla_indices = None
-    else:
-        patients = tcr_presence_absence.columns
-        hla_df = hla_patient_data.loc[patients, valid_hla_indices]
 
-    # Construct DataFrame for presence and visit
-    data = pd.DataFrame({'presence': presence, 'visit': visit})
+    return data, hla_df, valid_hla_indices
 
-    if hla_df is not None and not hla_df.empty:
-            hla_df = hla_df.reset_index(drop=True)
-            data = pd.concat([data, hla_df], axis=1)
-
-    return data,hla_df,valid_hla_indices
 
 
     

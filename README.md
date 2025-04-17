@@ -1,20 +1,20 @@
-TCR-HLA-Association/
-│
-├── utils/                         
-│   ├── io_utils.py                   # Loads metadata, patient data, and HLA data
-│   ├── preprocess.py                 # Parses TCR files and maps sample metadata
-│   ├── train_framework.py            # Training logic: GLM fitting, result extraction
-│   ├── filter.py                     # Filtering logic: novel TCR detection, ptid summaries
-│   └── test_framework.py             # Testing logic: AUC computation, matrix prep
-│
-├── config.py                         # Configuration file with paths and global variables
-├── filtering.py                      # Executes the filtering step to select TCRs
-├── train.py                          # Executes training using filtered TCRs and HLA data
-├── test.py                           # Evaluates model performance using AUC metrics
-├── main.py                           # Runs the full pipeline: filtering → training → testing
-│
-├── scripts/                          
-│   └── run_pipeline.slurm            # SLURM script to execute the full pipeline on HPC
+## Project Directory Structure
+
+- `tcr-hla-pipeline/`
+  - `utils/`  
+    - `io_utils.py` – Loads metadata, patient data, and HLA data  
+    - `preprocess.py` – Parses TCR files and maps sample metadata  
+    - `train_framework.py` – GLM model training and result extraction  
+    - `filter.py` – Novel TCR detection and patient-level filtering  
+    - `test_framework.py` – AUC computation and evaluation logic  
+  - `config.py` – Configuration file with paths and constants  
+  - `filtering.py` – Runs the TCR filtering step  
+  - `train.py` – Runs the training step using filtered TCRs  
+  - `test.py` – Evaluates models on test set using AUC metrics  
+  - `main.py` – Orchestrates the full pipeline (filter → train → test)  
+  - `scripts/`  
+    - `run_pipeline.slurm` – SLURM script to run the full pipeline on HPC
+
 
 
 

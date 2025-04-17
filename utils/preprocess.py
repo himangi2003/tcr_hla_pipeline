@@ -61,7 +61,7 @@ def add_vaccine_sample_ptid_HLA_info_to_df(df, vaccine_meta_DATA_FILE_path):
 
     return df.fillna(0)
 
-#filter HLA sample for train_ptids
+#filter HLA sample for train_ptids/test PTids 
 def filter_hla_samples(DF_HLA, m, train_ptids, filenames):
     hla_patient_data_test = add_vaccine_sample_ptid_HLA_info_to_df(DF_HLA, m)
     hla_patient_data_test = hla_patient_data_test[hla_patient_data_test["ptid"].isin(train_ptids)]

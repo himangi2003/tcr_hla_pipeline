@@ -25,6 +25,28 @@ warnings.filterwarnings("ignore")
 
 
 def run_testify(args):
+
+    """
+    Performs Fisher's exact test to find significant TCR-HLA association
+
+    Args:
+    args : (tuple): A tuple conatining
+            col (str): a column name in Y matrix for each HLA subgroup to be tested 
+            tcr_presence_absence (dataframe) : tcr_presence_absence matrix obtained after running 
+                                                tabify or tabify1
+            Y (dataframe) : Binary matrix containing training PTIDs 
+                            sample level HLA specific information
+            cutoff (float) : p_value cut off to find significant TCR - HLA assocition 
+                            for each HLA subgroup
+
+    Returns:
+            results (dataframe) : a dataframe containing columns "TCR", "HLA subgroup" and the 
+                                    associated p value 
+
+
+
+    """
+
     col, tcr_presence_absence, Y, cutoff = args
     results = testify(Dx=tcr_presence_absence, binary_matrix=Y[[col]].astype("float64"))
     results["fdr_corrected_p"] = smm.multipletests(results["p_exact"], method="fdr_bh")[1]
@@ -43,9 +65,9 @@ def analyze_tcr_hla_association(
         metadata_df (pd.DataFrame): Metadata including ptids and visit info.
         train_ptids (pd.Series): Patient IDs in training set.
         input_tcrs (list or np.ndarray): TCRs to analyze.
-        v (VfamCDR3 object): VfamCDR3 parser instance.
+        v (VfamCDR3 object): VfamCDR3 adaptive parser instance for training rep files.
         filenames (list): Raw filenames for parsing.
-        cutoff (float): P-value cutoff for inclusion.
+        cutoff (float): P-value cutoff for storing testify results.
         novel_expander (bool): check to use expanded TCRs only .
         edit_type (str): 'edit0' for tabify, 'edit1' for tabify1.
 
@@ -53,12 +75,14 @@ def analyze_tcr_hla_association(
         tcr_presence_absence (DataFrame), tcr_specific_hla (DataFrame),
         visit (Series), all_fdr_values (DataFrame)
     """
+    # finding filtered filenames for train ptids and the HLA patient matrix for those ptids training samples
     filtered_filenames, hla_patient_data_train = filter_hla_samples(
         DF_HLA, metadata_df, train_ptids, filenames
     )
-
+    
+    # preprosseing files to use tabify or tabify1
     v.parse_adaptive_files(checklist=filtered_filenames)
-
+    
     filelist = [os.path.join(v.outdir_vfamcdr3, x) for x in os.listdir(v.outdir_vfamcdr3)]
     input_tcrs_df = pd.DataFrame(input_tcrs, columns=["vfamcdr3"])
 
@@ -92,16 +116,19 @@ def analyze_tcr_hla_association(
     tcr_presence_absence_testify = tcr_presence_absence[Y_testify.index]
 
     print("Running HLA-TCR association tests...")
-    with Pool(cpu_count()) as pool:
-        all_results = pool.map(run_testify, [
-            (col, tcr_presence_absence_testify, Y_testify, cutoff)
-            for col in Y_testify.columns
-        ])
+    
+    # run testify to get significant HLA TCR association matrix 
+    all_results = []
+    for col in Y_testify.columns:
+        result = run_testify((col, tcr_presence_absence_testify, Y_testify, cutoff))
+        all_results.append(result)
 
+    # final dataframe containing significant HLA TCR association matrix using cut_off 
     tcr_specific_hla = pd.concat(all_results, ignore_index=True).sort_values("fdr_corrected_p")
     all_fdr_values = tcr_specific_hla.copy()
     tcr_specific_hla.rename(columns={"i": "vfamcdr3"}, inplace=True)
 
+    # find the visit matrix if for training samples if _post = 1, pre = 0
     visit = pd.Series(tcr_presence_absence.columns, index=tcr_presence_absence.columns).str.contains("_post").astype(int)
 
     return tcr_presence_absence, tcr_specific_hla, visit, all_fdr_values

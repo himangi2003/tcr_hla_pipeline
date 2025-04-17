@@ -5,7 +5,18 @@ from utils.preprocess import*
 
 
 def process_patient(ptid, data_df, REP_FOLDER):
-    """Processes a patient and returns TCRs with novel expanders and counts >1."""
+    """
+    Processesing TCR list for a single patient identifying novel TCR expanders and counts>1.
+
+    Args:
+        ptid (str): Patient ID.
+        data_df (pd.DataFrame): data file that contains 91 PTIDs and sample infomation
+        REP_FOLDER (str): Directory path where repertoire files are stored.
+
+    Returns:
+        pd.DataFrame: Filtered TCRs with columns ['vfamcdr3', 'counts', 'novel_expander'].
+                      Returns an empty DataFrame if no valid data is found.
+    """
     specific_ptid_data = data_df[data_df['ptid'] == ptid]
     if specific_ptid_data.empty:
         return pd.DataFrame()
@@ -23,7 +34,20 @@ def process_patient(ptid, data_df, REP_FOLDER):
     return count_summary[count_summary['counts'] > 1]
 
 def process_amino_acid_counts(ptids, data_df, REP_FOLDER, min_num_ptids, only_novel):
-    """Processes amino acid counts across patients, filtering by TCR novelty and ptid count."""
+    """
+    Agrregate list of TCRs list scross multiple patients PTIDS identifying novel TCR expanders and counts>1.
+
+    Args:
+        ptid (str): Patient ID.
+        data_df (pd.DataFrame): data file that contains 91 PTIDs and sample infomation
+        REP_FOLDER (str): Directory path where repertoire files are stored.
+        min_num_ptids (int): Minimum number of unique PTIDs.
+        only_novel (bool): If True, only novel expanders are included.
+
+
+    Returns:
+        pd.DataFrame:TCRs list with columns ['vfamcdr3', 'num_ptids'].
+    """
     results = [process_patient(ptid, data_df, REP_FOLDER) for ptid in tqdm(ptids, desc="Processing patients")]
     final_df = pd.concat([r for r in results if not r.empty], ignore_index=True)
     
@@ -40,7 +64,16 @@ def process_amino_acid_counts_for_tcrs(tcr_list, data_df, REP_FOLDER, min_ptid_c
     return aa_summary[aa_summary['vfamcdr3'].isin(tcr_list)]
 
 def split_ptids(data_df, PTID_SPLIT_FILE, seed=42):
-    """Splits PTIDs into two random groups using a reproducible seed."""
+    """
+    Splits patient IDs (PTIDs) into two groups for training and testing.
+
+    Args:
+        data_df (pd.DataFrame): data file that contains 91 PTIDs and sample infomation.
+        PTID_SPLIT_FILE (str): Path to CSV file with list of 91 PTIDs and column 'ptid'.
+
+    Returns:
+        tuple: Two DataFrames (group_1, group_2) corresponding to the training and testing splits.
+    """
     valid_ptids = pd.read_csv(PTID_SPLIT_FILE)["ptid"].unique()
     random.seed(seed)
     shuffled_ptids = list(valid_ptids)

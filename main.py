@@ -11,10 +11,10 @@ if __name__ == "__main__":
     os.makedirs("outputs", exist_ok=True)
 
     print("Filtering and Preprocessing data....")
-    run_filtering(min_num_ptids, only_novel)
+    #run_filtering(min_num_ptids, only_novel)
 
     print("Running training...")
-    run_training(edit_type, min_num_ptids, only_novel)
+    #run_training(edit_type, min_num_ptids, only_novel)
 
     print("Running testing...")
     run_testing(edit_type)

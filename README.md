@@ -1,21 +1,20 @@
 TCR-HLA-Association/
 │
-├── utils/                          # Helper modules used across pipeline stages
-│   ├── io_utils.py                # Functions for loading metadata, patient data, and HLA data
-│   ├── preprocess.py              # Functions for parsing TCR files and mapping sample metadata
-│   ├── train_framework.py         # Functions used in training (GLM fitting, model extraction)
-│   ├── filter.py                  # Functions used in filtering (novel TCR detection, ptid-level summaries)
-│   └── test_framework.py          # Functions for evaluation (AUC computation, matrix alignment)
+├── utils/                         
+│   ├── io_utils.py                   # Loads metadata, patient data, and HLA data
+│   ├── preprocess.py                 # Parses TCR files and maps sample metadata
+│   ├── train_framework.py            # Training logic: GLM fitting, result extraction
+│   ├── filter.py                     # Filtering logic: novel TCR detection, ptid summaries
+│   └── test_framework.py             # Testing logic: AUC computation, matrix prep
 │
-├── config.py                      # Config file defining paths to data and resources
-├── filtering.py                   # Script to run the TCR filtering step
-├── train.py                       # Script to run training on filtered TCRs
-├── test.py                        # Script to run model evaluation (AUC scoring)
-├── main.py                        # Main script to run filtering → training → testing
+├── config.py                         # Configuration file with paths and global variables
+├── filtering.py                      # Executes the filtering step to select TCRs
+├── train.py                          # Executes training using filtered TCRs and HLA data
+├── test.py                           # Evaluates model performance using AUC metrics
+├── main.py                           # Runs the full pipeline: filtering → training → testing
 │
-├── scripts/                       # Batch scripts for running the pipeline
-│   └── run_pipeline.slurm         # SLURM batch script to execute the entire pipeline
-
+├── scripts/                          
+│   └── run_pipeline.slurm            # SLURM script to execute the full pipeline on HPC
 
 
 

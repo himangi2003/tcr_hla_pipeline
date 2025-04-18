@@ -3,15 +3,15 @@
 - `tcr-hla-pipeline/`
   - `utils/`  
     - `io_utils.py` – Loads metadata, patient data, and HLA data  
-    - `preprocess.py` – Parses TCR files and maps sample metadata  
-    - `train_framework.py` – GLM model training and result extraction  
+    - `preprocess.py` – preprocesses Rep files and prepares input dataframe and maps sample metadata  
+    - `train_framework.py` – model training and result extraction  
     - `filter.py` – Novel TCR detection and patient-level filtering  
     - `test_framework.py` – AUC computation and evaluation logic  
-  - `config.py` – Configuration file with paths and constants  
+  - `config.py` – Configuration file with paths  
   - `filtering.py` – Runs the TCR filtering step  
   - `train.py` – Runs the training step using filtered TCRs  
   - `test.py` – Evaluates models on test set using AUC metrics  
-  - `main.py` – Orchestrates the full pipeline (filter → train → test)  
+  - `main.py` – Runs the full pipeline (filter → train → test)  
   - `scripts/`  
     - `run_pipeline.slurm` – SLURM script to run the full pipeline on HPC
 
@@ -34,7 +34,7 @@
 | `run_training(...)`                           | Training      | Full training pipeline using filtered TCRs, saving GLM results to CSV.                     |
 | `compute_auc(...)`                            | Testing       | Computes AUC for each individual HLA subgroup using logistic regression.                    |
 | `compute_auc_all_hla(...)`                    | Testing       | Computes AUC across all HLA-positive patients collectively.                                 |
-| `test(...)`                                   | Testing       | End-to-end evaluation: prepares test set, builds matrix, computes AUCs.                     |
+| `test(...)`                                   | Testing       | testing framework: prepares test set, builds matrix, computes AUCs.                     |
 | `run_testing(...)`                            | Testing       | Master function to perform Testing, generate HLA subgroups with AUC information                    |
 | `filter_hla_samples(...)`                     | Utility        | Filters filenames and HLA data to match specified PTIDs.                                   |
 | `load_metadata(...)`                          | I/O Utility    | Loads and filters metadata file for category 'B'.                                          |
